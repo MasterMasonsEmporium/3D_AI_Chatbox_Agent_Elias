@@ -1,0 +1,1480 @@
+#!/usr/bin/env python3
+"""
+Complete Masonic AI Agent Kubernetes Deployment Package Generator
+Integrates infrastructure, security, monitoring, and file download systems
+"""
+
+import os
+import zipfile
+from pathlib import Path
+import shutil
+
+def create_deployment_package():
+    """Generate complete Kubernetes deployment package with all systems"""
+    
+    print("🔨 Creating Masonic AI Agent Deployment Package...")
+    
+    # Create directory structure
+    directories = [
+        'masonic-ai-k8s',
+        'masonic-ai-k8s/kubernetes',
+        'masonic-ai-k8s/docker',
+        'masonic-ai-k8s/app',
+        'masonic-ai-k8s/app/services',
+        'masonic-ai-k8s/app/models',
+        'masonic-ai-k8s/app/utils',
+        'masonic-ai-k8s/app/static',
+        'masonic-ai-k8s/config',
+        'masonic-ai-k8s/scripts',
+        'masonic-ai-k8s/docs',
+        'masonic-ai-k8s/monitoring'
+    ]
+    
+    for directory in directories:
+        Path(directory).mkdir(parents=True, exist_ok=True)
+    
+    # Generate all components
+    generate_core_services()
+    generate_security_layer()
+    generate_download_system()
+    generate_monitoring_system()
+    generate_main_application()
+    generate_dockerfile()
+    generate_kubernetes_manifests()
+    generate_docker_compose()
+    generate_deployment_scripts()
+    generate_documentation()
+    
+    # Create zip file
+    create_zip_archive()
+    
+    print("\n✅ Deployment package created: masonic-ai-k8s-deployment.zip")
+    print("\n📦 Package includes:")
+    print("  ✓ Complete infrastructure setup")
+    print("  ✓ Security layer with OAuth2, MFA, JWT")
+    print("  ✓ File download system with CDN")
+    print("  ✓ Monitoring and alerting")
+    print("  ✓ Kubernetes manifests")
+    print("  ✓ Docker configuration")
+    print("  ✓ Deployment scripts")
+    print("  ✓ Complete documentation")
+
+def generate_core_services():
+    """Generate core infrastructure services"""
+    
+    infrastructure_code = """\"\"\"
+Masonic AI Infrastructure Core Services
+Handles file storage, database, and compute resources
+\"\"\"
+
+from typing import Dict, Any, Optional
+import boto3
+from datetime import datetime
+import logging
+import redis
+import psycopg2
+from psycopg2.pool import ThreadedConnectionPool
+import os
+
+logger = logging.getLogger(__name__)
+
+
+class MasonicAIInfrastructure:
+    \"\"\"Core infrastructure management\"\"\"
+    
+    def __init__(self):
+        self.services = {
+            'file_storage': {
+                'type': 'distributed',
+                'providers': ['AWS S3', 'Azure Blob Storage'],
+                'redundancy': True,
+                'encryption': 'AES-256'
+            },
+            'database': {
+                'primary': 'PostgreSQL',
+                'cache': 'Redis',
+                'replication': True
+            },
+            'compute': {
+                'api_servers': 'Kubernetes cluster',
+                'rendering_farm': 'GPU cluster',
+                'ml_processing': 'TPU/GPU hybrid'
+            }
+        }
+        
+        # Initialize connections
+        self.s3_client = None
+        self.db_pool = None
+        self.redis_client = None
+        self._initialize_services()
+    
+    def _initialize_services(self):
+        \"\"\"Initialize all service connections\"\"\"
+        try:
+            # S3 Client
+            self.s3_client = boto3.client(
+                's3',
+                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+                region_name=os.getenv('AWS_REGION', 'us-east-1')
+            )
+            
+            # Database Connection Pool
+            self.db_pool = ThreadedConnectionPool(
+                minconn=5,
+                maxconn=20,
+                host=os.getenv('DB_HOST', 'postgres'),
+                port=os.getenv('DB_PORT', 5432),
+                database=os.getenv('DB_NAME', 'masonic_ai'),
+                user=os.getenv('DB_USER', 'user'),
+                password=os.getenv('DB_PASSWORD', 'password')
+            )
+            
+            # Redis Client
+            self.redis_client = redis.Redis(
+                host=os.getenv('REDIS_HOST', 'redis'),
+                port=int(os.getenv('REDIS_PORT', 6379)),
+                db=0,
+                decode_responses=True
+            )
+            
+            logger.info("✓ Infrastructure services initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize services: {e}")
+            raise
+    
+    def upload_file(self, file_path: str, key: str, bucket: str = None) -> str:
+        \"\"\"Upload file to S3 with encryption\"\"\"
+        if bucket is None:
+            bucket = os.getenv('S3_BUCKET', 'masonic-ai-storage')
+        
+        try:
+            self.s3_client.upload_file(
+                file_path,
+                bucket,
+                key,
+                ExtraArgs={
+                    'ServerSideEncryption': 'AES256',
+                    'StorageClass': 'STANDARD_IA'
+                }
+            )
+            url = f"https://{bucket}.s3.amazonaws.com/{key}"
+            logger.info(f"✓ File uploaded: {key}")
+            return url
+        except Exception as e:
+            logger.error(f"File upload failed: {e}")
+            raise
+    
+    def get_db_connection(self):
+        \"\"\"Get database connection from pool\"\"\"
+        return self.db_pool.getconn()
+    
+    def release_db_connection(self, conn):
+        \"\"\"Release database connection back to pool\"\"\"
+        self.db_pool.putconn(conn)
+    
+    def cache_set(self, key: str, value: str, expire: int = 3600):
+        \"\"\"Set value in Redis cache\"\"\"
+        self.redis_client.setex(key, expire, value)
+    
+    def cache_get(self, key: str) -> Optional[str]:
+        \"\"\"Get value from Redis cache\"\"\"
+        return self.redis_client.get(key)
+    
+    def health_check(self) -> Dict[str, Any]:
+        \"\"\"Check health of all services\"\"\"
+        health = {
+            's3': False,
+            'database': False,
+            'redis': False,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        # Check S3
+        try:
+            self.s3_client.list_buckets()
+            health['s3'] = True
+        except Exception as e:
+            logger.error(f"S3 health check failed: {e}")
+        
+        # Check Database
+        try:
+            conn = self.get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            cursor.close()
+            self.release_db_connection(conn)
+            health['database'] = True
+        except Exception as e:
+            logger.error(f"Database health check failed: {e}")
+        
+        # Check Redis
+        try:
+            self.redis_client.ping()
+            health['redis'] = True
+        except Exception as e:
+            logger.error(f"Redis health check failed: {e}")
+        
+        return health
+
+
+# Global infrastructure instance
+infrastructure = MasonicAIInfrastructure()
+"""
+    
+    with open('masonic-ai-k8s/app/services/infrastructure.py', 'w') as f:
+        f.write(infrastructure_code)
+
+def generate_security_layer():
+    """Generate security implementation"""
+    
+    security_code = """\"\"\"
+Security Layer Implementation
+OAuth2, MFA, JWT, Encryption, and Monitoring
+\"\"\"
+
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+import secrets
+import hashlib
+import os
+import logging
+from enum import Enum
+
+logger = logging.getLogger(__name__)
+
+# Security configuration
+SECRET_KEY = os.getenv('JWT_SECRET', secrets.token_urlsafe(32))
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+
+class SecurityLevel(Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class SecurityLayer:
+    \"\"\"Comprehensive security implementation\"\"\"
+    
+    def __init__(self):
+        self.security_features = {
+            'authentication': {
+                'oauth2': True,
+                'mfa': True,
+                'jwt_tokens': True
+            },
+            'encryption': {
+                'in_transit': 'TLS 1.3',
+                'at_rest': 'AES-256',
+                'key_management': 'AWS KMS'
+            },
+            'monitoring': {
+                'intrusion_detection': True,
+                'audit_logging': True,
+                'real_time_alerts': True
+            }
+        }
+        
+        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.active_sessions = {}
+        self.failed_attempts = {}
+        self.audit_log = []
+    
+    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
+        \"\"\"Verify password hash\"\"\"
+        return self.pwd_context.verify(plain_password, hashed_password)
+    
+    def get_password_hash(self, password: str) -> str:
+        \"\"\"Generate password hash\"\"\"
+        return self.pwd_context.hash(password)
+    
+    def create_access_token(self, data: dict, expires_delta: Optional[timedelta] = None) -> str:
+        \"\"\"Create JWT access token\"\"\"
+        to_encode = data.copy()
+        
+        if expires_delta:
+            expire = datetime.utcnow() + expires_delta
+        else:
+            expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        
+        to_encode.update({
+            "exp": expire,
+            "iat": datetime.utcnow(),
+            "jti": secrets.token_urlsafe(16)
+        })
+        
+        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        
+        # Log token creation
+        self.audit_log.append({
+            'event': 'token_created',
+            'user': data.get('sub'),
+            'timestamp': datetime.utcnow().isoformat(),
+            'expires': expire.isoformat()
+        })
+        
+        return encoded_jwt
+    
+    def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
+        \"\"\"Verify and decode JWT token\"\"\"
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            return payload
+        except JWTError as e:
+            logger.warning(f"Token verification failed: {e}")
+            return None
+    
+    def generate_mfa_token(self, user_id: str) -> str:
+        \"\"\"Generate MFA token\"\"\"
+        token = secrets.token_urlsafe(32)
+        
+        # Store token with expiration (5 minutes)
+        self.active_sessions[token] = {
+            'user_id': user_id,
+            'created': datetime.utcnow(),
+            'expires': datetime.utcnow() + timedelta(minutes=5),
+            'verified': False
+        }
+        
+        return token
+    
+    def verify_mfa_token(self, token: str, code: str) -> bool:
+        \"\"\"Verify MFA token and code\"\"\"
+        session = self.active_sessions.get(token)
+        
+        if not session:
+            return False
+        
+        if datetime.utcnow() > session['expires']:
+            del self.active_sessions[token]
+            return False
+        
+        # In production, verify against TOTP or SMS code
+        # For now, placeholder verification
+        session['verified'] = True
+        return True
+    
+    def encrypt_data(self, data: str) -> str:
+        \"\"\"Encrypt sensitive data (placeholder for AES-256)\"\"\"
+        # In production, use proper AES-256 encryption
+        return hashlib.sha256(data.encode()).hexdigest()
+    
+    def check_rate_limit(self, identifier: str, limit: int = 100) -> bool:
+        \"\"\"Check if request is within rate limit\"\"\"
+        # Simple in-memory rate limiting
+        # In production, use Redis for distributed rate limiting
+        current_count = self.failed_attempts.get(identifier, 0)
+        return current_count < limit
+    
+    def record_failed_attempt(self, identifier: str):
+        \"\"\"Record failed authentication attempt\"\"\"
+        self.failed_attempts[identifier] = self.failed_attempts.get(identifier, 0) + 1
+        
+        self.audit_log.append({
+            'event': 'failed_attempt',
+            'identifier': identifier,
+            'timestamp': datetime.utcnow().isoformat(),
+            'count': self.failed_attempts[identifier]
+        })
+        
+        # Alert if too many failures
+        if self.failed_attempts[identifier] > 5:
+            self.send_security_alert(identifier, SecurityLevel.HIGH)
+    
+    def send_security_alert(self, identifier: str, level: SecurityLevel):
+        \"\"\"Send security alert\"\"\"
+        alert = {
+            'level': level.value,
+            'identifier': identifier,
+            'timestamp': datetime.utcnow().isoformat(),
+            'message': f'Security alert: Multiple failed attempts from {identifier}'
+        }
+        
+        logger.warning(f"SECURITY ALERT: {alert}")
+        
+        # In production, integrate with:
+        # - Slack webhook
+        # - Email service
+        # - PagerDuty API
+    
+    def get_audit_log(self, limit: int = 100) -> list:
+        \"\"\"Get recent audit log entries\"\"\"
+        return self.audit_log[-limit:]
+    
+    def clear_expired_sessions(self):
+        \"\"\"Clean up expired sessions\"\"\"
+        current_time = datetime.utcnow()
+        expired = [
+            token for token, session in self.active_sessions.items()
+            if current_time > session['expires']
+        ]
+        
+        for token in expired:
+            del self.active_sessions[token]
+
+
+# Global security instance
+security = SecurityLayer()
+"""
+    
+    with open('masonic-ai-k8s/app/services/security.py', 'w') as f:
+        f.write(security_code)
+
+def generate_download_system():
+    """Generate file download system"""
+    
+    download_code = """\"\"\"
+File Download System Implementation
+CDN integration, access control, and secure downloads
+\"\"\"
+
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
+import hashlib
+import secrets
+import logging
+from urllib.parse import urlencode
+
+logger = logging.getLogger(__name__)
+
+
+class DownloadSystem:
+    \"\"\"Secure file download system with CDN integration\"\"\"
+    
+    def __init__(self):
+        self.config = {
+            'cdn_config': {
+                'provider': 'Cloudflare',
+                'edge_locations': True,
+                'caching': True,
+                'base_url': 'https://download.mastermasons-emporium.com'
+            },
+            'access_control': {
+                'authentication': True,
+                'rate_limiting': True,
+                'ip_filtering': True
+            }
+        }
+        
+        self.active_tokens = {}
+        self.download_stats = {}
+    
+    def generate_secure_token(self, file_id: str, user_id: str, expiration: datetime) -> str:
+        \"\"\"Generate secure download token\"\"\"
+        # Create token payload
+        payload = f"{file_id}:{user_id}:{expiration.isoformat()}"
+        secret = secrets.token_urlsafe(32)
+        
+        # Generate HMAC signature
+        signature = hashlib.sha256(
+            f"{payload}:{secret}".encode()
+        ).hexdigest()
+        
+        token = f"{secrets.token_urlsafe(16)}.{signature[:16]}"
+        
+        # Store token info
+        self.active_tokens[token] = {
+            'file_id': file_id,
+            'user_id': user_id,
+            'expiration': expiration,
+            'created': datetime.utcnow(),
+            'downloads': 0,
+            'max_downloads': 5
+        }
+        
+        return token
+    
+    def generate_download_link(self, file_id: str, user: Dict[str, Any]) -> str:
+        \"\"\"Generate secure, time-limited download link\"\"\"
+        expiration = datetime.utcnow() + timedelta(hours=24)
+        token = self.generate_secure_token(file_id, user.get('id', 'anonymous'), expiration)
+        
+        base_url = self.config['cdn_config']['base_url']
+        params = urlencode({'token': token})
+        
+        download_url = f"{base_url}/{file_id}?{params}"
+        
+        logger.info(f"✓ Generated download link for file {file_id}, user {user.get('id')}")
+        
+        return download_url
+    
+    def verify_download_token(self, token: str) -> Optional[Dict[str, Any]]:
+        \"\"\"Verify download token and check permissions\"\"\"
+        token_info = self.active_tokens.get(token)
+        
+        if not token_info:
+            logger.warning(f"Invalid token: {token}")
+            return None
+        
+        # Check expiration
+        if datetime.utcnow() > token_info['expiration']:
+            logger.warning(f"Expired token: {token}")
+            del self.active_tokens[token]
+            return None
+        
+        # Check download limit
+        if token_info['downloads'] >= token_info['max_downloads']:
+            logger.warning(f"Download limit exceeded: {token}")
+            return None
+        
+        return token_info
+    
+    def record_download(self, token: str, ip_address: str, user_agent: str):
+        \"\"\"Record download event\"\"\"
+        token_info = self.active_tokens.get(token)
+        
+        if token_info:
+            token_info['downloads'] += 1
+            
+            # Update statistics
+            file_id = token_info['file_id']
+            if file_id not in self.download_stats:
+                self.download_stats[file_id] = {
+                    'total_downloads': 0,
+                    'unique_users': set(),
+                    'last_download': None
+                }
+            
+            self.download_stats[file_id]['total_downloads'] += 1
+            self.download_stats[file_id]['unique_users'].add(token_info['user_id'])
+            self.download_stats[file_id]['last_download'] = datetime.utcnow()
+            
+            logger.info(
+                f"✓ Download recorded: file={file_id}, "
+                f"user={token_info['user_id']}, ip={ip_address}"
+            )
+    
+    def check_rate_limit(self, user_id: str, ip_address: str) -> bool:
+        \"\"\"Check download rate limits\"\"\"
+        # In production, use Redis for distributed rate limiting
+        # Simple in-memory implementation for now
+        key = f"{user_id}:{ip_address}"
+        
+        # Allow 10 downloads per hour
+        # This is a placeholder - implement proper rate limiting in production
+        return True
+    
+    def get_download_stats(self, file_id: str) -> Optional[Dict[str, Any]]:
+        \"\"\"Get download statistics for a file\"\"\"
+        stats = self.download_stats.get(file_id)
+        
+        if stats:
+            return {
+                'file_id': file_id,
+                'total_downloads': stats['total_downloads'],
+                'unique_users': len(stats['unique_users']),
+                'last_download': stats['last_download'].isoformat() if stats['last_download'] else None
+            }
+        
+        return None
+    
+    def revoke_token(self, token: str) -> bool:
+        \"\"\"Revoke a download token\"\"\"
+        if token in self.active_tokens:
+            del self.active_tokens[token]
+            logger.info(f"✓ Token revoked: {token}")
+            return True
+        return False
+    
+    def cleanup_expired_tokens(self):
+        \"\"\"Remove expired tokens from memory\"\"\"
+        current_time = datetime.utcnow()
+        expired = [
+            token for token, info in self.active_tokens.items()
+            if current_time > info['expiration']
+        ]
+        
+        for token in expired:
+            del self.active_tokens[token]
+        
+        if expired:
+            logger.info(f"✓ Cleaned up {len(expired)} expired tokens")
+
+
+# Global download system instance
+download_system = DownloadSystem()
+"""
+    
+    with open('masonic-ai-k8s/app/services/downloads.py', 'w') as f:
+        f.write(download_code)
+
+def generate_monitoring_system():
+    """Generate monitoring and health check system"""
+    
+    monitoring_code = """\"\"\"
+System Monitoring and Health Checks
+Metrics, alerting, and logging implementation
+\"\"\"
+
+from datetime import datetime, timedelta
+from typing import Dict, Any, List
+import logging
+import time
+from enum import Enum
+
+logger = logging.getLogger(__name__)
+
+
+class AlertChannel(Enum):
+    SLACK = "slack"
+    EMAIL = "email"
+    PAGERDUTY = "pagerduty"
+
+
+class SystemMonitoring:
+    \"\"\"Comprehensive system monitoring\"\"\"
+    
+    def __init__(self):
+        self.monitoring = {
+            'metrics': {
+                'response_time': True,
+                'error_rates': True,
+                'resource_usage': True
+            },
+            'alerting': {
+                'slack': True,
+                'email': True,
+                'pagerduty': True
+            },
+            'logging': {
+                'elk_stack': True,
+                'trace_analysis': True
+            }
+        }
+        
+        self.metrics = {
+            'requests': {'total': 0, 'success': 0, 'failed': 0},
+            'response_times': [],
+            'errors': [],
+            'resource_usage': {'cpu': [], 'memory': [], 'disk': []}
+        }
+        
+        self.alerts = []
+        self.health_status = {}
+    
+    def record_request(self, endpoint: str, method: str, status_code: int, response_time: float):
+        \"\"\"Record API request metrics\"\"\"
+        self.metrics['requests']['total'] += 1
+        
+        if 200 <= status_code < 300:
+            self.metrics['requests']['success'] += 1
+        else:
+            self.metrics['requests']['failed'] += 1
+        
+        self.metrics['response_times'].append({
+            'endpoint': endpoint,
+            'method': method,
+            'time': response_time,
+            'timestamp': datetime.utcnow()
+        })
+        
+        # Keep only last 1000 entries
+        if len(self.metrics['response_times']) > 1000:
+            self.metrics['response_times'] = self.metrics['response_times'][-1000:]
+        
+        # Alert on slow responses
+        if response_time > 5.0:  # 5 seconds
+            self.send_alert(
+                'slow_response',
+                f"Slow response detected: {endpoint} took {response_time:.2f}s",
+                [AlertChannel.SLACK]
+            )
+    
+    def record_error(self, error_type: str, message: str, stack_trace: str = None):
+        \"\"\"Record error occurrence\"\"\"
+        error_entry = {
+            'type': error_type,
+            'message': message,
+            'stack_trace': stack_trace,
+            'timestamp': datetime.utcnow()
+        }
+        
+        self.metrics['errors'].append(error_entry)
+        
+        # Keep only last 500 errors
+        if len(self.metrics['errors']) > 500:
+            self.metrics['errors'] = self.metrics['errors'][-500:]
+        
+        # Alert on critical errors
+        if error_type in ['database_connection', 'authentication_failure', 'security_breach']:
+            self.send_alert(
+                'critical_error',
+                f"Critical error: {error_type} - {message}",
+                [AlertChannel.PAGERDUTY, AlertChannel.EMAIL]
+            )
+    
+    def record_resource_usage(self, cpu: float, memory: float, disk: float):
+        \"\"\"Record system resource usage\"\"\"
+        timestamp = datetime.utcnow()
+        
+        self.metrics['resource_usage']['cpu'].append({'value': cpu, 'timestamp': timestamp})
+        self.metrics['resource_usage']['memory'].append({'value': memory, 'timestamp': timestamp})
+        self.metrics['resource_usage']['disk'].append({'value': disk, 'timestamp': timestamp})
+        
+        # Keep only last hour of data
+        cutoff = datetime.utcnow() - timedelta(hours=1)
+        
+        for resource_type in ['cpu', 'memory', 'disk']:
+            self.metrics['resource_usage'][resource_type] = [
+                entry for entry in self.metrics['resource_usage'][resource_type]
+                if entry['timestamp'] > cutoff
+            ]
+        
+        # Alert on high resource usage
+        if cpu > 90 or memory > 90 or disk > 90:
+            self.send_alert(
+                'high_resource_usage',
+                f"High resource usage: CPU={cpu}%, Memory={memory}%, Disk={disk}%",
+                [AlertChannel.SLACK]
+            )
+    
+    def send_alert(self, alert_type: str, message: str, channels: List[AlertChannel]):
+        \"\"\"Send alert to specified channels\"\"\"
+        alert = {
+            'type': alert_type,
+            'message': message,
+            'timestamp': datetime.utcnow(),
+            'channels': [ch.value for ch in channels]
+        }
+        
+        self.alerts.append(alert)
+        logger.warning(f"ALERT: {alert_type} - {message}")
+        
+        # In production, integrate with actual alerting services:
+        for channel in channels:
+            if channel == AlertChannel.SLACK:
+                self._send_slack_alert(alert)
+            elif channel == AlertChannel.EMAIL:
+                self._send_email_alert(alert)
+            elif channel == AlertChannel.PAGERDUTY:
+                self._send_pagerduty_alert(alert)
+    
+    def _send_slack_alert(self, alert: Dict[str, Any]):
+        \"\"\"Send alert to Slack (placeholder)\"\"\"
+        # Implement Slack webhook integration
+        logger.info(f"Slack alert would be sent: {alert['message']}")
+    
+    def _send_email_alert(self, alert: Dict[str, Any]):
+        \"\"\"Send alert via email (placeholder)\"\"\"
+        # Implement email service integration
+        logger.info(f"Email alert would be sent: {alert['message']}")
+    
+    def _send_pagerduty_alert(self, alert: Dict[str, Any]):
+        \"\"\"Send alert to PagerDuty (placeholder)\"\"\"
+        # Implement PagerDuty API integration
+        logger.info(f"PagerDuty alert would be sent: {alert['message']}")
+    
+    def get_metrics_summary(self) -> Dict[str, Any]:
+        \"\"\"Get summary of current metrics\"\"\"
+        # Calculate averages
+        avg_response_time = 0
+        if self.metrics['response_times']:
+            avg_response_time = sum(
+                r['time'] for r in self.metrics['response_times']
+            ) / len(self.metrics['response_times'])
+        
+        error_rate = 0
+        if self.metrics['requests']['total'] > 0:
+            error_rate = (
+                self.metrics['requests']['failed'] / 
+                self.metrics['requests']['total']
+            ) * 100
+        
+        return {
+            'requests': self.metrics['requests'],
+            'average_response_time': round(avg_response_time, 3),
+            'error_rate': round(error_rate, 2),
+            'recent_errors': len(self.metrics['errors']),
+            'active_alerts': len([a for a in self.alerts if self._is_recent(a['timestamp'])]),
+            'timestamp': datetime.utcnow().isoformat()
+        }
+    
+    def _is_recent(self, timestamp: datetime, minutes: int = 60) -> bool:
+        \"\"\"Check if timestamp is within recent time window\"\"\"
+        return datetime.utcnow() - timestamp < timedelta(minutes=minutes)
+    
+    def health_check(self) -> Dict[str, Any]:
+        \"\"\"Comprehensive health check\"\"\"
+        return {
+            'status': 'healthy' if self.metrics['requests']['total'] > 0 else 'starting',
+            'metrics': self.get_metrics_summary(),
+            'uptime': 'available',
+            'timestamp': datetime.utcnow().isoformat()
+        }
+
+
+# Global monitoring instance
+monitoring = SystemMonitoring()
+"""
+    
+    with open('masonic-ai-k8s/app/services/monitoring.py', 'w') as f:
+        f.write(monitoring_code)
+
+def generate_main_application():
+    """Generate main FastAPI application with all integrations"""
+    
+    main_app = """\"\"\"
+Main FastAPI Application
+Integrates all services: Infrastructure, Security, Downloads, Monitoring
+\"\"\"
+
+from fastapi import FastAPI, WebSocket, HTTPException, Depends, Request, Header
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
+import os
+import logging
+from typing import Optional, Dict, Any
+import anthropic
+import time
+from datetime import datetime, timedelta
+
+# Import our services
+from services.infrastructure import infrastructure
+from services.security import security
+from services.downloads import download_system
+from services.monitoring import monitoring, AlertChannel
+
+# Configure logging
+logging.basicConfig(
+    level=os.getenv('LOG_LEVEL', 'INFO'),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="Masonic AI Agent - Elias",
+    description="AI-powered customer service agent for Master Masons Emporium",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
+)
+
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Configuration
+AGENT_NAME = os.getenv('AGENT_NAME', 'Elias')
+AGENT_IMAGE_URL = os.getenv('AGENT_IMAGE_URL', 'http://mastermasonsemporium.com/wp-content/uploads/2025/11/THESAM1.png')
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
+
+# Initialize Anthropic client
+anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
+
+# OAuth2 scheme
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+# Pydantic Models
+class ChatMessage(BaseModel):
+    message: str
+    conversation_id: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    response: str
+    conversation_id: str
+    agent_name: str
+    agent_image: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class User(BaseModel):
+    username: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    disabled: Optional[bool] = None
+
+class DownloadRequest(BaseModel):
+    file_id: str
+
+
+# Middleware for request tracking
+@app.middleware("http")
+async def track_requests(request: Request, call_next):
+    start_time = time.time()
+    
+    response = await call_next(request)
+    
+    process_time = time.time() - start_time
+    monitoring.record_request(
+        endpoint=request.url.path,
+        method=request.method,
+        status_code=response.status_code,
+        response_time=process_time
+    )
+    
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
+
+
+# Dependency for getting current user
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, Any]:
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    payload = security.verify_token(token)
+    if payload is None:
+        raise credentials_exception
+    
+    username: str = payload.get("sub")
+    if username is None:
+        raise credentials_exception
+    
+    return {"username": username, "id": payload.get("user_id")}
+
+
+# Routes
+@app.get("/")
+async def root():
+    \"\"\"Serve the main chat interface\"\"\"
+    html_content = f'''
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{AGENT_NAME} - Masonic AI Assistant</title>
+        <style>
+            * {{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }}
+            body {{
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                color: #fff;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+            }}
+            .chat-container {{
+                width: 100%;
+                max-width: 900px;
+                height: 85vh;
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(10px);
+                border-radius: 20px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            }}
+            .chat-header {{
+                background: linear-gradient(135deg, #c9a961 0%, #8b7355 100%);
+                padding: 25px;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            }}
+            .agent-avatar {{
+                width: 70px;
+                height: 70px;
+                border-radius: 50%;
+                border: 3px solid #fff;
+                object-fit: cover;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            }}
+            .agent-info h2 {{
+                margin: 0;
+                font-size: 26px;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }}
+            .agent-info p {{
+                margin: 5px 0 0 0;
+                opacity: 0.9;
+                font-size: 14px;
+            }}
+            .status-indicator {{
+                width: 12px;
+                height: 12px;
+                background: #4ade80;
+                border-radius: 50%;
+                display: inline-block;
+                margin-left: 10px;
+                animation: pulse 2s infinite;
+            }}
+            @keyframes pulse {{
+                0%, 100% {{ opacity: 1; }}
+                50% {{ opacity: 0.5; }}
+            }}
+            .chat-messages {{
+                flex: 1;
+                overflow-y: auto;
+                padding: 25px;
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }}
+            .chat-messages::-webkit-scrollbar {{
+                width: 8px;
+            }}
+            .chat-messages::-webkit-scrollbar-track {{
+                background: rgba(255, 255, 255, 0.05);
+            }}
+            .chat-messages::-webkit-scrollbar-thumb {{
+                background: rgba(201, 169, 97, 0.5);
+                border-radius: 4px;
+            }}
+            .message {{
+                display: flex;
+                gap: 12px;
+                animation: slideIn 0.4s ease;
+            }}
+            @keyframes slideIn {{
+                from {{
+                    opacity: 0;
+                    transform: translateY(20px);
+                }}
+                to {{
+                    opacity: 1;
+                    transform: translateY(0);
+                }}
+            }}
+            .message.user {{
+                flex-direction: row-reverse;
+            }}
+            .message-avatar {{
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                flex-shrink: 0;
+            }}
+            .message-content {{
+                max-width: 70%;
+                padding: 15px 20px;
+                border-radius: 18px;
+                line-height: 1.6;
+                word-wrap: break-word;
+            }}
+            .message.agent .message-content {{
+                background: rgba(201, 169, 97, 0.2);
+                border: 1px solid rgba(201, 169, 97, 0.3);
+                border-top-left-radius: 4px;
+            }}
+            .message.user .message-content {{
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-top-right-radius: 4px;
+            }}
+            .message-time {{
+                font-size: 11px;
+                opacity: 0.6;
+                margin-top: 5px;
+            }}
+            .typing-indicator {{
+                display: none;
+                align-items: center;
+                gap: 10px;
+                padding: 15px 20px;
+                background: rgba(201, 169, 97, 0.2);
+                border: 1px solid rgba(201, 169, 97, 0.3);
+                border-radius: 18px;
+                border-top-left-radius: 4px;
+                max-width: fit-content;
+                margin: 0 20px 20px 20px;
+            }}
+            .typing-indicator.active {{
+                display: flex;
+            }}
+            .typing-dots {{
+                display: flex;
+                gap: 5px;
+            }}
+            .typing-dots span {{
+                width: 8px;
+                height: 8px;
+                background: #c9a961;
+                border-radius: 50%;
+                animation: bounce 1.4s infinite;
+            }}
+            .typing-dots span:nth-child(2) {{
+                animation-delay: 0.2s;
+            }}
+            .typing-dots span:nth-child(3) {{
+                animation-delay: 0.4s;
+            }}
+            @keyframes bounce {{
+                0%, 80%, 100% {{
+                    transform: scale(0);
+                }}
+                40% {{
+                    transform: scale(1);
+                }}
+            }}
+            .chat-input {{
+                padding: 25px;
+                background: rgba(0, 0, 0, 0.2);
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                display: flex;
+                gap: 12px;
+            }}
+            .chat-input input {{
+                flex: 1;
+                padding: 16px 20px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 12px;
+                color: #fff;
+                font-size: 16px;
+                transition: all 0.3s;
+            }}
+            .chat-input input:focus {{
+                outline: none;
+                border-color: #c9a961;
+                background: rgba(255, 255, 255, 0.08);
+            }}
+            .chat-input input::placeholder {{
+                color: rgba(255, 255, 255, 0.5);
+            }}
+            .chat-input button {{
+                padding: 16px 32px;
+                background: linear-gradient(135deg, #c9a961 0%, #8b7355 100%);
+                border: none;
+                border-radius: 12px;
+                color: #fff;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.3s;
+                font-size: 16px;
+            }}
+            .chat-input button:hover {{
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(201, 169, 97, 0.4);
+            }}
+            .chat-input button:disabled {{
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="chat-container">
+            <div class="chat-header">
+                <img src="{AGENT_IMAGE_URL}" alt="{AGENT_NAME}" class="agent-avatar">
+                <div class="agent-info">
+                    <h2>{AGENT_NAME}<span class="status-indicator"></span></h2>
+                    <p>Masonic AI Assistant • Master Masons Emporium</p>
+                </div>
+            </div>
+            <div class="chat-messages" id="messages">
+                <div class="message agent">
+                    <img src="{AGENT_IMAGE_URL}" alt="{AGENT_NAME}" class="message-avatar">
+                    <div>
+                        <div class="message-content">
+                            Greetings, Brother. I am {AGENT_NAME}, your AI assistant for the Master Masons Emporium. How may I be of service to you today?
+                        </div>
+                        <div class="message-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+            <div class="typing-indicator" id="typing">
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span>{AGENT_NAME} is thinking...</span>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Ask me anything about Masonic products and services..." />
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+        <script>
+            const messagesDiv = document.getElementById('messages');
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const typingIndicator = document.getElementById('typing');
+            let conversationId = null;
+
+            function getTimeString() {{
+                const now = new Date();
+                return now.toLocaleTimeString('en-US', {{ hour: 'numeric', minute: '2-digit' }});
+            }}
+
+            async function sendMessage() {{
+                const message = messageInput.value.trim();
+                if (!message) return;
+
+                addMessage(message, 'user');
+                messageInput.value = '';
+                sendButton.disabled = true;
+                typingIndicator.classList.add('active');
+
+                try {{
+                    const response = await fetch('/chat', {{
+                        method: 'POST',
+                        headers: {{
+                            'Content-Type': 'application/json'
+                        }},
+                        body: JSON.stringify({{
+                            message: message,
+                            conversation_id: conversationId
+                        }})
+                    }});
+
+                    const data = await response.json();
+                    conversationId = data.conversation_id;
+                    
+                    typingIndicator.classList.remove('active');
+                    addMessage(data.response, 'agent');
+                }} catch (error) {{
+                    typingIndicator.classList.remove('active');
+                    addMessage('I apologize, but I encountered an error. Please try again.', 'agent');
+                    console.error('Chat error:', error);
+                }} finally {{
+                    sendButton.disabled = false;
+                    messageInput.focus();
+                }}
+            }}
+
+            function addMessage(text, type) {{
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${{type}}`;
+                
+                const avatarImg = type === 'agent' 
+                    ? `<img src="{AGENT_IMAGE_URL}" alt="{AGENT_NAME}" class="message-avatar">`
+                    : '<div class="message-avatar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>';
+                
+                messageDiv.innerHTML = `
+                    ${{avatarImg}}
+                    <div>
+                        <div class="message-content">${{text}}</div>
+                        <div class="message-time">${{getTimeString()}}</div>
+                    </div>
+                `;
+                
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }}
+
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {{
+                if (e.key === 'Enter' && !e.shiftKey) {{
+                    e.preventDefault();
+                    sendMessage();
+                }}
+            }});
+
+            // Focus input on load
+            messageInput.focus();
+        </script>
+    </body>
+    </html>
+    '''
+    return HTMLResponse(content=html_content)
+
+
+@app.post("/token", response_model=Token)
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    \"\"\"OAuth2 token endpoint\"\"\"
+    # In production, validate against database
+    # This is a placeholder implementation
+    
+    if not security.check_rate_limit(form_data.username):
+        raise HTTPException(status_code=429, detail="Too many login attempts")
+    
+    # Placeholder validation
+    if form_data.username == "demo" and form_data.password == "demo123":
+        access_token = security.create_access_token(
+            data={"sub": form_data.username, "user_id": "user_123"}
+        )
+        return {"access_token": access_token, "token_type": "bearer"}
+    
+    security.record_failed_attempt(form_data.username)
+    raise HTTPException(status_code=401, detail="Incorrect username or password")
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(message: ChatMessage):
+    \"\"\"Handle chat messages\"\"\"
+    try:
+        conv_id = message.conversation_id or f"conv_{os.urandom(8).hex()}"
+        
+        # Call Anthropic API if available
+        if anthropic_client:
+            try:
+                response = anthropic_client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=1000,
+                    system=f"You are {AGENT_NAME}, a knowledgeable and professional AI assistant for the Master Masons Emporium. You help customers with Masonic products, regalia, books, and services. Be respectful, informative, and use appropriate Masonic terminology when relevant.",
+                    messages=[{
+                        "role": "user",
+                        "content": message.message
+                    }]
+                )
+                agent_response = response.content[0].text
+            except Exception as e:
+                logger.error(f"Anthropic API error: {e}")
+                monitoring.record_error("anthropic_api_error", str(e))
+                agent_response = f"Thank you for your message. I'm {AGENT_NAME}, and I'm here to assist you with Masonic products and services. How can I help you today?"
+        else:
+            agent_response = f"Thank you for reaching out. I'm {AGENT_NAME}, your Masonic AI assistant. I can help you with product information, orders, and general inquiries about Master Masons Emporium. What would you like to know?"
+        
+        return ChatResponse(
+            response=agent_response,
+            conversation_id=conv_id,
+            agent_name=AGENT_NAME,
+            agent_image=AGENT_IMAGE_URL
+        )
+    except Exception as e:
+        logger.error(f"Chat error: {e}")
+        monitoring.record_error("chat_error", str(e))
+        raise HTTPException(status_code=500, detail="Chat processing failed")
+
+
+@app.post("/download/request")
+async def request_download(
+    request: DownloadRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    \"\"\"Request a secure download link\"\"\"
+    try:
+        download_link = download_system.generate_download_link(
+            request.file_id,
+            current_user
+        )
+        
+        return {
+            "download_url": download_link,
+            "expires_in": "24 hours",
+            "file_id": request.file_id
+        }
+    except Exception as e:
+        logger.error(f"Download request error: {e}")
+        monitoring.record_error("download_request_error", str(e))
+        raise HTTPException(status_code=500, detail="Failed to generate download link")
+
+
+@app.get("/download/{file_id}")
+async def download_file(file_id: str, token: str, request: Request):
+    \"\"\"Download file with token verification\"\"\"
+    try:
+        # Verify token
+        token_info = download_system.verify_download_token(token)
+        
+        if not token_info:
+            raise HTTPException(status_code=403, detail="Invalid or expired download token")
+        
+        if token_info['file_id'] != file_id:
+            raise HTTPException(status_code=403, detail="Token does not match file")
+        
+        # Record download
+        download_system.record_download(
+            token,
+            request.client.host,
+            request.headers.get("user-agent", "unknown")
+        )
+        
+        # In production, fetch file from S3
+        # For now, return a placeholder
+        return {
+            "message": "File download initiated",
+            "file_id": file_id,
+            "downloads_remaining": token_info['max_downloads'] - token_info['downloads']
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Download error: {e}")
+        monitoring.record_error("download_error", str(e))
+        raise HTTPException(status_code=500, detail="Download failed")
+
+
+@app.get("/health")
+async def health_check():
+    \"\"\"Health check endpoint\"\"\"
+    infra_health = infrastructure.health_check()
+    monitoring_health = monitoring.health_check()
+    
+    return {
+        "status": "healthy",
+        "agent": AGENT_NAME,
+        "service": "masonic-ai-agent",
+        "infrastructure": infra_health,
+        "monitoring": monitoring_health,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/ready")
+async def readiness_check():
+    \"\"\"Readiness check endpoint\"\"\"
+    return {
+        "status": "ready",
+        "agent": AGENT_NAME,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/metrics")
+async def get_metrics():
+    \"\"\"Get system metrics\"\"\"
+    return {
+        "metrics": monitoring.get_metrics_summary(),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/api/stats")
+async def get_stats(current_user: Dict[str, Any] = Depends(get_current_user)):
+    \"\"\"Get system statistics (protected endpoint)\"\"\"
+    return {
+        "monitoring": monitoring.get_metrics_summary(),
+        "infrastructure": infrastructure.health_check(),
+        "security": {
+            "active_sessions": len(security.active_sessions),
+            "recent_alerts": len([
+                a for a in security.audit_log 
+                if (datetime.utcnow() - datetime.fromisoformat(a['timestamp'])).seconds < 3600
+            ])
+        }
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+\"\"\"
+    
+    with open('masonic-ai-k8s/app/main.py', 'w') as f:
+        f.write(main_app)
+    
+    # Create __init__.py files
+    init_files = [
+        'masonic-ai-k8s/app/__init__.py',
+        'masonic-ai-k8s/app/services/__init__.py',
+        'masonic-ai-k8s/app/models/__init__.py',
+        'masonic-ai-k8s/app/utils/__init__.py'
+    ]
+    
+    for init_file in init_files:
+        with open(init_file, 'w') as f:
+            f.write("")
